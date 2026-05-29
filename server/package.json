@@ -5,9 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "postinstall": "node node_modules/prisma/build/index.js generate",
-},
-  
+    "postinstall": "npx prisma generate"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
