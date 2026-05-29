@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "postinstall": "npx prisma generate"
+    "postinstall": "node node_modules/prisma/bin/index.js generate"
   },
   "keywords": [],
   "author": "",
