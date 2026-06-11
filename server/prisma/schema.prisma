@@ -31,8 +31,9 @@ model Complaint {
   id          Int      @id @default(autoincrement())
 
   title       String
-
+rejectionReason String?
   description String
+   timeline          String? 
 
   status      String   @default("Pending")
 

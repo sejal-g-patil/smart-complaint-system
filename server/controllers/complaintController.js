@@ -52,6 +52,8 @@ const createComplaint = async (
           title,
 
           description,
+          timeline:
+  "Complaint Created",
 
           latitude: latitude
             ? parseFloat(latitude)
@@ -101,7 +103,7 @@ const getComplaints =
 
             user: true,
 
-            worker: true,
+            assignedWorker: true,
           },
 
           orderBy: {
@@ -130,14 +132,16 @@ const getComplaints =
 
 const getMyComplaints =
   async (req, res) => {
-
     try {
-
       const complaints =
         await prisma.complaint.findMany({
-
           where: {
-            userId: req.user.id,
+            userId:
+              req.user.id,
+          },
+
+          include: {
+            assignedWorker: true,
           },
 
           orderBy: {
@@ -145,10 +149,10 @@ const getMyComplaints =
           },
         });
 
-      res.json(complaints);
-
+      res.json(
+        complaints
+      );
     } catch (error) {
-
       console.log(error);
 
       res.status(500).json({
@@ -157,7 +161,6 @@ const getMyComplaints =
       });
     }
   };
-
 // =========================
 // WORKER DASHBOARD
 // =========================
@@ -213,86 +216,64 @@ const getWorkerComplaints =
 // ASSIGN WORKER
 // =========================
 
-const assignWorker =
-  async (req, res) => {
-
-    try {
-
-      if (
-        req.user.role !==
-        "admin"
-      ) {
-
-        return res.status(403).json({
-          message:
-            "Access denied",
-        });
-      }
-
-      const { workerId } =
-        req.body;
-
-      if (!workerId) {
-
-        return res.status(400).json({
-          message:
-            "workerId is required",
-        });
-      }
-
-      const complaint =
-        await prisma.complaint.update({
-
-          where: {
-            id: Number(
-              req.params.id
-            ),
-          },
-
-          data: {
-
-            assignedWorkerId:
-              Number(workerId),
-
-            status:
-              "In Progress",
-          },
-        });
-
-      res.json({
-
-        message:
-          "Worker assigned successfully",
-
-        complaint,
-      });
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        message:
-          "Failed to assign worker",
+const assignWorker = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        message: "Access denied",
       });
     }
-  };
 
+    const { workerId } = req.body;
+
+    const complaint =
+      await prisma.complaint.update({
+        where: {
+          id: Number(req.params.id),
+        },
+
+        data: {
+          assignedWorkerId: Number(workerId),
+
+          status: "In Progress",
+
+          timeline:
+            "Complaint Created → Worker Assigned",
+        },
+      });
+
+    res.json({
+      message:
+        "Worker assigned successfully",
+
+      complaint,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message:
+        "Failed to assign worker",
+    });
+  }
+};
+// =========================
+// UPDATE STATUS
+// =========================
 // =========================
 // UPDATE STATUS
 // =========================
 
 const updateComplaintStatus =
   async (req, res) => {
-
     try {
-
-      const { status } =
-        req.body;
+      const {
+        status,
+        rejectionReason,
+      } = req.body;
 
       const complaint =
         await prisma.complaint.findUnique({
-
           where: {
             id: Number(
               req.params.id
@@ -301,7 +282,6 @@ const updateComplaintStatus =
         });
 
       if (!complaint) {
-
         return res.status(404).json({
           message:
             "Complaint not found",
@@ -310,18 +290,95 @@ const updateComplaintStatus =
 
       if (
         complaint.status ===
-        "Resolved"
+          "Resolved" &&
+        status !== "Resolved"
       ) {
-
         return res.status(400).json({
           message:
             "Complaint already resolved",
         });
       }
 
+      // ADMIN APPROVES
+
+      if (
+        status ===
+        "Resolved"
+      ) {
+        if (
+          complaint.status !==
+          "Work Submitted"
+        ) {
+          return res.status(400).json({
+            message:
+              "Worker has not submitted work yet",
+          });
+        }
+
+        const updatedComplaint =
+          await prisma.complaint.update({
+            where: {
+              id: Number(
+                req.params.id
+              ),
+            },
+
+            data: {
+              status:
+                "Resolved",
+
+              timeline:
+                "Complaint Created → Worker Assigned → Work Submitted → Resolved",
+            },
+          });
+
+        return res.json(
+          updatedComplaint
+        );
+      }
+
+      // ADMIN REJECTS
+
+      if (
+        status ===
+        "Rejected"
+      ) {
+        if (
+          complaint.status !==
+          "Work Submitted"
+        ) {
+          return res.status(400).json({
+            message:
+              "No submitted work to reject",
+          });
+        }
+
+        const updatedComplaint =
+          await prisma.complaint.update({
+            where: {
+              id: Number(
+                req.params.id
+              ),
+            },
+
+            data: {
+              status:
+                "Rejected",
+
+              rejectionReason,
+
+              timeline:
+                "Complaint Created → Worker Assigned → Work Submitted → Rejected",
+            },
+          });
+
+        return res.json(
+          updatedComplaint
+        );
+      }
+
       const updatedComplaint =
         await prisma.complaint.update({
-
           where: {
             id: Number(
               req.params.id
@@ -336,9 +393,7 @@ const updateComplaintStatus =
       res.json(
         updatedComplaint
       );
-
     } catch (error) {
-
       console.log(error);
 
       res.status(500).json({
@@ -347,89 +402,94 @@ const updateComplaintStatus =
       });
     }
   };
-
 // =========================
 // COMPLETE WORK
 // =========================
 
-const completeWork =
-  async (req, res) => {
-
-    try {
-
-      const complaint =
-        await prisma.complaint.findUnique({
-
-          where: {
-            id: Number(
-              req.params.id
-            ),
-          },
-        });
-
-      if (!complaint) {
-
-        return res.status(404).json({
-          message:
-            "Complaint not found",
-        });
-      }
-
-      // PREVENT MULTIPLE COMPLETION
-
-      if (
-        complaint.status ===
-        "Resolved"
-      ) {
-
-        return res.status(400).json({
-          message:
-            "Complaint already resolved",
-        });
-      }
-
-      const updatedComplaint =
-        await prisma.complaint.update({
-
-          where: {
-            id: Number(
-              req.params.id
-            ),
-          },
-
-          data: {
-
-            status:
-              "Resolved",
-
-            workNote:
-              req.body.workNote,
-
-            workImage:
-              req.file
-                ? req.file.filename
-                : null,
-          },
-        });
-
-      res.json({
-
-        message:
-          "Work completed successfully",
-
-        updatedComplaint,
+const completeWork = async (
+  req,
+  res
+) => {
+  try {
+    const complaint =
+      await prisma.complaint.findUnique({
+        where: {
+          id: Number(
+            req.params.id
+          ),
+        },
       });
 
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
+    if (!complaint) {
+      return res.status(404).json({
         message:
-          "Failed to complete work",
+          "Complaint not found",
       });
     }
-  };
+
+    if (
+      !complaint.assignedWorkerId
+    ) {
+      return res.status(400).json({
+        message:
+          "Complaint not assigned yet",
+      });
+    }
+
+    if (
+      complaint.status ===
+      "Resolved"
+    ) {
+      return res.status(400).json({
+        message:
+          "Already resolved",
+      });
+    }
+
+    const updatedComplaint =
+      await prisma.complaint.update({
+        where: {
+          id: Number(
+            req.params.id
+          ),
+        },
+
+        data: {
+          status:
+            "Work Submitted",
+
+          timeline:
+            "Complaint Created → Worker Assigned → Work Submitted",
+
+          workNote:
+            req.body.workNote,
+
+          workImage:
+            req.file
+              ? req.file.filename
+              : complaint.workImage,
+
+          rejectionReason:
+            null,
+        },
+      });
+
+    res.json({
+      message:
+        "Work submitted successfully",
+
+      updatedComplaint,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message:
+        "Failed to complete work",
+    });
+  }
+};
+  
 
 module.exports = {
 

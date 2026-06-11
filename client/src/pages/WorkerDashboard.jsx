@@ -183,16 +183,18 @@ function WorkerDashboard() {
                 </h2>
 
                 <span
-                  className={`px-4 py-2 rounded-full ${
-                    complaint.status ===
-                    "Resolved"
-                      ? "bg-green-500"
-                      : complaint.status ===
-                        "In Progress"
-                      ? "bg-blue-500"
-                      : "bg-yellow-500"
-                  }`}
-                >
+  className={`px-4 py-2 rounded-full ${
+    complaint.status === "Resolved"
+      ? "bg-green-500"
+      : complaint.status === "Rejected"
+      ? "bg-red-500"
+      : complaint.status === "Work Submitted"
+      ? "bg-purple-500"
+      : complaint.status === "In Progress"
+      ? "bg-blue-500"
+      : "bg-yellow-500"
+  }`}
+>
                   {complaint.status}
                 </span>
 
@@ -205,6 +207,21 @@ function WorkerDashboard() {
                 {complaint.description}
 
               </p>
+              {complaint.status === "Rejected" && (
+
+  <div className="mt-5 bg-red-900 p-4 rounded-xl">
+
+    <h3 className="font-bold text-red-300">
+      Rejected By Admin
+    </h3>
+
+    <p className="mt-2">
+      {complaint.rejectionReason}
+    </p>
+
+  </div>
+
+)}
 
               {/* PRIORITY */}
 
@@ -257,6 +274,23 @@ function WorkerDashboard() {
                 className="w-full mt-6 p-4 rounded-2xl bg-slate-800 outline-none"
                 rows="4"
               />
+              {complaint.workImage && (
+
+  <div className="mt-5">
+
+    <p className="mb-2 text-slate-400">
+      Submitted Work Image
+    </p>
+
+    <img
+      src={`http://localhost:5000/uploads/${complaint.workImage}`}
+      alt=""
+      className="w-52 h-52 object-cover rounded-2xl"
+    />
+
+  </div>
+
+)}
 
               {/* WORK IMAGE */}
 
@@ -283,7 +317,7 @@ function WorkerDashboard() {
 
               {/* COMPLETE BUTTON */}
 
-              <button
+            <button
   disabled={
     complaint.status ===
     "Resolved"
@@ -297,13 +331,24 @@ function WorkerDashboard() {
     complaint.status ===
     "Resolved"
       ? "bg-gray-500 cursor-not-allowed"
+      : complaint.status ===
+        "Rejected"
+      ? "bg-red-500 hover:bg-red-600"
       : "bg-green-500 hover:bg-green-600"
   }`}
 >
+
   {complaint.status ===
   "Resolved"
-    ? "Already Completed"
+    ? "Resolved"
+    : complaint.status ===
+      "Rejected"
+    ? "Re-Submit Work"
+    : complaint.status ===
+      "Work Submitted"
+    ? "Update Submission"
     : "Complete Work"}
+
 </button>
 
             </div>

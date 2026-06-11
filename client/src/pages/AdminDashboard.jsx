@@ -1,4 +1,4 @@
-import {
+import { 
   PieChart,
   Pie,
   Cell,
@@ -33,6 +33,8 @@ function AdminDashboard({
   const user = JSON.parse(
     localStorage.getItem("user")
   );
+  const [rejectionReason, setRejectionReason] =
+  useState("");
 
   const [
     notification,
@@ -184,6 +186,42 @@ function AdminDashboard({
         console.log(error);
       }
     };
+    const rejectComplaint =
+  async (id) => {
+
+    try {
+
+      if (!rejectionReason) {
+
+        return alert(
+          "Enter rejection reason"
+        );
+
+      }
+
+      await API.put(
+        `/complaints/update/${id}`,
+        {
+          status: "Rejected",
+          rejectionReason,
+        },
+        config
+      );
+
+      setNotification(
+        "Complaint Rejected"
+      );
+
+      setRejectionReason("");
+
+      fetchComplaints();
+
+    } catch (error) {
+
+      console.log(error);
+
+    }
+  };
 
   // LOAD DATA
 
@@ -758,74 +796,88 @@ const inProgressComplaints =
                   </td>
 
                   <td className="p-4">
-                    {complaint.workNote ||
-                      "Pending"}
-                  </td>
 
-                  <td className="p-4">
+  {complaint.workImage ? (
 
-                    {complaint.workImage ? (
+    <img
+      src={`http://localhost:5000/uploads/${complaint.workImage}`}
+      alt=""
+      className="w-20 h-20 rounded-lg object-cover"
+    />
 
-                      <img
-                        src={`http://localhost:5000/uploads/${complaint.workImage}`}
-                        alt=""
-                        className="w-20 h-20 rounded-lg object-cover"
-                      />
+  ) : (
+    "No Image"
+  )}
 
-                    ) : (
-                      "No Image"
-                    )}
+</td>
 
-                  </td>
+{/* REJECTION REASON */}
 
-                  <td className="p-4 flex gap-2">
+<td className="p-4">
 
-                    <button
-                      disabled={
-                        complaint.status ===
-                        "Resolved"
-                      }
-                      onClick={() =>
-                        updateStatus(
-                          complaint.id,
-                          "In Progress"
-                        )
-                      }
-                      className={`px-4 py-2 rounded-lg ${
-                        complaint.status ===
-                        "Resolved"
-                          ? "bg-gray-500 cursor-not-allowed"
-                          : "bg-blue-500 hover:bg-blue-600"
-                      }`}
-                    >
-                      Start
-                    </button>
+  {complaint.status ===
+    "Work Submitted" && (
 
-                    <button
-                      disabled={
-                        complaint.status ===
-                        "Resolved"
-                      }
-                      onClick={() =>
-                        updateStatus(
-                          complaint.id,
-                          "Resolved"
-                        )
-                      }
-                      className={`px-4 py-2 rounded-lg ${
-                        complaint.status ===
-                        "Resolved"
-                          ? "bg-gray-500 cursor-not-allowed"
-                          : "bg-green-500 hover:bg-green-600"
-                      }`}
-                    >
-                      {complaint.status ===
-                      "Resolved"
-                        ? "Resolved"
-                        : "Resolve"}
-                    </button>
+    <input
+      type="text"
+      placeholder="Reason if rejecting"
+      value={rejectionReason}
+      onChange={(e) =>
+        setRejectionReason(
+          e.target.value
+        )
+      }
+      className="bg-slate-800 p-2 rounded-lg w-full"
+    />
 
-                  </td>
+  )}
+
+</td>
+
+{/* ACTIONS */}
+
+<td className="p-4 flex gap-2">
+
+  {complaint.status ===
+    "Work Submitted" ? (
+
+    <>
+      <button
+        onClick={() =>
+          updateStatus(
+            complaint.id,
+            "Resolved"
+          )
+        }
+        className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg"
+      >
+        Approve
+      </button>
+
+      <button
+        onClick={() =>
+          rejectComplaint(
+            complaint.id
+          )
+        }
+        className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg"
+      >
+        Reject
+      </button>
+    </>
+
+  ) : (
+
+    <button
+      disabled
+      className="bg-gray-500 px-4 py-2 rounded-lg"
+    >
+      Waiting For Worker
+    </button>
+
+  )}
+
+</td>
 
                 </tr>
 
@@ -840,6 +892,5 @@ const inProgressComplaints =
 
     </div>
   );
-}
-
-export default AdminDashboard;
+} 
+export default AdminDashboard; 

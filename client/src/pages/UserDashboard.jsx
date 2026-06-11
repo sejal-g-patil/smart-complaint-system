@@ -268,6 +268,9 @@ function UserDashboard({
                 <th className="p-4">
                   Date
                 </th>
+                <th className="p-4">
+  Timeline
+</th>
 
                 <th className="p-4">
                   Complaint Image
@@ -333,7 +336,12 @@ function UserDashboard({
                       ).toLocaleDateString()}
 
                     </td>
+<td className="p-4">
 
+  {complaint.timeline ||
+    "Created"}
+
+</td>
                     {/* COMPLAINT IMAGE */}
 
                     <td className="p-4">
