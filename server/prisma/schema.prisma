@@ -34,7 +34,7 @@ model Complaint {
   title       String
 rejectionReason String?
   description String
-   timeline          String? 
+   timeline    Json?
 
   status      String   @default("Pending")
 
